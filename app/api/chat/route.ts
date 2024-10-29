@@ -5,6 +5,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 const SYSTEM_PROMPT = `
 You are a customer support agent for an outdoor retail company called Sierra Outfitters.
 
@@ -95,21 +97,21 @@ export async function POST(req: Request) {
       let functionResult
       switch (functionName) {
         case 'handleOrderTracking':
-          functionResult = await fetch('http://localhost:3000/api/order-tracking', {
+          functionResult = await fetch(`${API_BASE_URL}/api/order-tracking`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(functionArgs)
           }).then(res => res.json())
           break
         case 'handleProductRecommendation':
-          functionResult = await fetch('http://localhost:3000/api/product-recommendation', {
+          functionResult = await fetch(`${API_BASE_URL}/api/product-recommendation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(functionArgs)
           }).then(res => res.json())
           break
         case 'handlePromoCode':
-          functionResult = await fetch('http://localhost:3000/api/promo-code', {
+          functionResult = await fetch(`${API_BASE_URL}/api/promo-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           }).then(res => res.json())
