@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { Configuration, OpenAIApi } from 'openai-edge'
 
-const openai = new OpenAI({
+const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 })
+
+const openai = new OpenAIApi(config)
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -32,19 +34,19 @@ Make sure to ask user if they need help with anything else until they end the ch
 `
 
 export async function POST(req: Request) {
-  const { message, history } = await req.json()
+  const { messages } = await req.json()
 
   const chatHistory = [
     { role: 'system', content: SYSTEM_PROMPT },
-    ...history,
-    { role: 'user', content: message }
+    ...messages
   ]
 
   try {
-    const completion = await openai.chat.completions.create({
+    const response = await openai.createChatCompletion({
       model: 'gpt-4',
       messages: chatHistory,
       temperature: 0,
+      stream: true,
       functions: [
         {
           name: 'handleOrderTracking',
@@ -88,59 +90,68 @@ export async function POST(req: Request) {
       ]
     })
 
-    const assistantMessage = completion.choices[0].message
+    const stream = OpenAIStream(response, {
+      async experimental_onFunctionCall(functionCall) {
+          const functionName = functionCall.name;
+          const functionArgs = typeof functionCall.arguments === 'string'
+            ? JSON.parse(functionCall.arguments)
+            : functionCall.arguments;
 
-    if (assistantMessage.function_call) {
-      const functionName = assistantMessage.function_call.name
-      const functionArgs = JSON.parse(assistantMessage.function_call.arguments)
+          let functionResult;
+          switch (functionName) {
+            case 'handleOrderTracking':
+              functionResult = await fetch(`${API_BASE_URL}/api/order-tracking`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(functionArgs)
+              }).then(res => res.json());
+              break;
+            case 'handleProductRecommendation':
+              functionResult = await fetch(`${API_BASE_URL}/api/product-recommendation`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(functionArgs)
+              }).then(res => res.json());
+              break;
+            case 'handlePromoCode':
+              functionResult = await fetch(`${API_BASE_URL}/api/promo-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              }).then(res => res.json());
+              break;
+            case 'handleEndChat':
+              functionResult = { endChat: true };
+              break;
+          }
 
-      let functionResult
-      switch (functionName) {
-        case 'handleOrderTracking':
-          functionResult = await fetch(`${API_BASE_URL}/api/order-tracking`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(functionArgs)
-          }).then(res => res.json())
-          break
-        case 'handleProductRecommendation':
-          functionResult = await fetch(`${API_BASE_URL}/api/product-recommendation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(functionArgs)
-          }).then(res => res.json())
-          break
-        case 'handlePromoCode':
-          functionResult = await fetch(`${API_BASE_URL}/api/promo-code`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          }).then(res => res.json())
-          break
-        case 'handleEndChat':
-          functionResult = { endChat: true }
-          break
-        default:
-          throw new Error(`Unknown function: ${functionName}`)
-      }
+          const secondResponse = await openai.createChatCompletion({
+            model: 'gpt-4',
+            stream: true,
+            messages: [
+              ...chatHistory,
+              {
+                role: 'assistant',
+                content: null,
+                function_call: {
+                  name: functionName,
+                  arguments: JSON.stringify(functionArgs),
+                },
+              },
+              {
+                role: 'function',
+                name: functionName,
+                content: JSON.stringify(functionResult),
+              },
+            ],
+          });
 
-      const functionResponse = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          ...chatHistory,
-          assistantMessage,
-          { role: 'function', name: functionName, content: JSON.stringify(functionResult) }
-        ]
-      })
+          return secondResponse;
+        },
+      });
 
-      return NextResponse.json({ 
-        message: functionResponse.choices[0].message.content,
-        endChat: functionName === 'handleEndChat'
-      })
-    }
-
-    return NextResponse.json({ message: assistantMessage.content })
+    return new StreamingTextResponse(stream);
   } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json({ error: 'An error occurred while processing your request.' }, { status: 500 })
+    console.error('Error:', error);
+    return new Response('An error occurred while processing your request.', { status: 500 });
   }
 }
