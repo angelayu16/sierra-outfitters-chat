@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
 
+interface Order {
+  CustomerName: string;
+  Email: string;
+  OrderNumber: string;
+  ProductsOrdered: string[];
+  Status: string;
+  TrackingNumber: string | null;
+}
+
 export async function POST(req: Request) {
   const { userEmail, orderId } = await req.json()
 
@@ -10,7 +19,7 @@ export async function POST(req: Request) {
   const orders = JSON.parse(ordersData)
 
   const userOrder = orders.find(
-    (order: any) => userEmail === order.Email && order.OrderNumber.includes(orderId)
+    (order: Order) => userEmail === order.Email && order.OrderNumber.includes(orderId)
   )
 
   if (!userOrder) {
