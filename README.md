@@ -16,7 +16,7 @@ A Next.js-based customer support chat interface for Sierra Outfitters, featuring
 
 1. Clone the repository
 ```bash
-git clone [repository-url]
+git clone https://github.com/angelayu16/sierra-outfitters-chat
 ```
 
 2. Install dependencies
