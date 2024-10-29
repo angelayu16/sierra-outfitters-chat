@@ -12,7 +12,7 @@ export default function ChatInterface() {
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     initialMessages: [
-      { role: 'assistant', content: "Welcome to Sierra Outfitters! How can I help you today? 🏔️🌲" }
+      { id: 'welcome-message', role: 'assistant', content: "Welcome to Sierra Outfitters! How can I help you today? 🏔️🌲" }
     ],
     onFinish: (message) => {
       try {
@@ -22,6 +22,7 @@ export default function ChatInterface() {
         }
       } catch (e) {
         // Not JSON, regular message
+        console.log(e)
       }
     }
   })
