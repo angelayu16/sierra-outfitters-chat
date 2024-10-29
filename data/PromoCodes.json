@@ -1,16 +1,9 @@
 [
-    {
-        "promo_code": "453c30ed-1b4c-45e2-814d-54e0781ac8cf",
-        "promo_amount": 10,
-        "promo_type": "early_risers",
-        "start": "2024-10-26 19:06:15.391167",
-        "end": "2024-11-09 19:06:15.391167"
-    },
-    {
-        "promo_code": "409547a4-6f32-4eb2-b8ed-ccfe220eb625",
-        "promo_amount": 10,
-        "promo_type": "early_risers",
-        "start": "2024-10-26 20:12:38.927320",
-        "end": "2024-11-09 20:12:38.927320"
-    }
+  {
+    "promoCode": "9c246481-50dd-4f46-9854-434a2725d84d",
+    "promoAmount": 10,
+    "promoType": "early_risers",
+    "start": "2024-10-29T19:22:23.299Z",
+    "end": "2024-11-12T20:22:23.315Z"
+  }
 ]
